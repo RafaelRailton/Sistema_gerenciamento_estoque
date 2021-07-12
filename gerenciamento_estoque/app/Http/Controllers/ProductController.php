@@ -94,16 +94,6 @@ class ProductController extends Controller
         return view('products.dashboard',['products'=>$products]);
     }
     public function destroy($id){
-        $relatorio = new Relatorio();
-        $products = DB::table('products')->where('id', $id)->first();
-      
-         $relatorio->nome = $products->nome;
-         $relatorio->sku =  $products->sku;
-         $relatorio->descricao = $products->descricao;
-         $relatorio->qtd = $products->qtd;
-         $relatorio->tipo_relatorio = 2;
-         $relatorio->user_id = $products->user_id;
-         $relatorio->save();
         Product::findOrFail($id)->delete();
         return redirect('/dashboard')->with('msg','Produto Excluído com Sucesso!');
     }
@@ -112,7 +102,8 @@ class ProductController extends Controller
         return view('products.edit',['product'=>$product]);
     }
     public function update(Request $request){
-        $data = $request->all();
+            $relatorio = new Relatorio();
+            $data = $request->all();
         if ($request->hasFile('foto') && $request->file('foto')->isValid()) {
             $requestImage   = $request->foto;
             $extension      = $requestImage->extension();
@@ -120,7 +111,16 @@ class ProductController extends Controller
             $requestImage->move(public_path('img/products'), $fotoName);
             $data['foto']   = $fotoName;
         }
-        Product::findOrFail($request->id)->update($data);
+       
+            Product::findOrFail($request->id)->update($data);
+            $product = DB::table('products')->where('id', $request->id)->first();
+            $relatorio->nome = $product->nome;
+            $relatorio->sku =  $product->sku;
+            $relatorio->descricao = $product->descricao;
+            $relatorio->qtd = $product->qtd;
+            $relatorio->tipo_relatorio = 1;
+            $relatorio->user_id = $product->user_id;
+            $relatorio->save();
         return redirect('/dashboard')->with('msg','Dados Editados com Sucesso!');
     }
 
@@ -130,9 +130,18 @@ class ProductController extends Controller
         $product = DB::table('products')->where('id', $id)->first();
      
         if(!($baixar > $product->qtd)){
+          
             $result = $product->qtd - $baixar;
             Product::where('id',$request->id)->update(['qtd'=> $result]);
             $product = DB::table('products')->where('id', $id)->first();
+             $relatorio = new Relatorio();
+             $relatorio->nome = $product->nome;
+             $relatorio->sku =  $product->sku;
+             $relatorio->descricao = $product->descricao;
+             $relatorio->qtd = $baixar;
+             $relatorio->tipo_relatorio = 2;
+             $relatorio->user_id = $product->user_id;
+             $relatorio->save();
             if($product->qtd < 100){
                 return redirect('/products/'.$id)->with('msg','Enviado para Cliente com Sucesso! "ESTOQUE BAIXO"');
             }else{
